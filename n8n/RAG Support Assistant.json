@@ -1,0 +1,304 @@
+{
+  "name": "RAG Support Assistant",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2b0b11ce-b770-4b58-b9e1-51f2c47ce9ad",
+      "name": "Load Knowledge Base",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const docs = [\n  { title: \"Refund policy\", content: \"Customers can request a full refund within 30 days of purchase. After 30 days, refunds are issued as account credit. Refunds are processed within 5 business days.\" },\n  { title: \"Reset password\", content: \"To reset a password, click Forgot password on the login page and enter your email. A reset link is sent and stays valid for 1 hour. If no email arrives, check spam or contact support.\" },\n  { title: \"Shipping times\", content: \"Standard shipping takes 3-5 business days. Express shipping takes 1-2 business days. Orders placed after 2pm ship the next business day. Tracking numbers are emailed once the order ships.\" },\n  { title: \"Cancel subscription\", content: \"Subscriptions can be cancelled anytime under Account > Billing > Cancel plan. Access continues until the end of the paid period. No partial refunds are given for unused time.\" },\n  { title: \"Contact hours\", content: \"Support is available Monday to Friday, 9am to 6pm IST, by email and live chat. Priority customers also get phone support. Average first response time is under 2 hours.\" }\n];\nreturn docs.map(d => ({ json: { text: d.title + \": \" + d.content } }));"
+      },
+      "id": "7ba22256-caef-4087-97da-4ee70dd6dc20",
+      "name": "Sample Support Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "support_kb"
+        },
+        "clearStore": true
+      },
+      "id": "5822563b-4170-4b37-be14-bc81257a155d",
+      "name": "Store Articles",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f975aa10-6b5d-4297-81ff-354ba3d9d71d",
+      "name": "Embeddings (Ingest)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        224
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "cc68a32b-6798-4bc3-a40f-06490ae54dbd",
+      "name": "Article Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9dacb312-7d2d-4cdc-8004-b33306b9034d",
+      "name": "Ask a Question",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        640
+      ],
+      "webhookId": "77a0036e-6fb9-4160-9cec-2294ddc56fed"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a support assistant. Always call the search_knowledge_base tool first and answer ONLY from the retrieved articles. If the answer is not in the knowledge base, say you do not know and suggest contacting support. Keep answers short and friendly."
+        }
+      },
+      "id": "5acf839c-a9fb-478e-9f27-1cab5c75402e",
+      "name": "Support RAG Assistant",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        288,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "12fe69da-9af1-48b3-aeb6-acb4ab20ef5d",
+      "name": "Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        864
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 6
+      },
+      "id": "7b505bd5-fc4c-4823-9644-15d0c1e1d99e",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        352,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the support knowledge base for policies and how-to answers (refunds, passwords, shipping, subscriptions, contact hours). Always use before answering.",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "id",
+          "value": "support_kb"
+        }
+      },
+      "id": "82860a7d-2025-44f1-a381-cb123ec6b994",
+      "name": "search_knowledge_base",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5ca6a161-cef5-4abb-96c3-e673db6a07a7",
+      "name": "Embeddings (Query)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        1072
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Load Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "Sample Support Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample Support Articles": {
+      "main": [
+        [
+          {
+            "node": "Store Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings (Ingest)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store Articles",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Article Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store Articles",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask a Question": {
+      "main": [
+        [
+          {
+            "node": "Support RAG Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Support RAG Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Support RAG Assistant",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_knowledge_base": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support RAG Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings (Query)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "search_knowledge_base",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2f7f1d9e-71d0-43cb-89f5-13355d841d03",
+  "meta": {
+    "instanceId": "1e3a2e574fd0f3aac08d7c2673d1a0bdd3ad3f4b50721b38e4d31f2117ee68d6"
+  },
+  "nodeGroups": [],
+  "id": "IQzy73DgaCCXpYKb",
+  "tags": []
+}

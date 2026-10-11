@@ -1,0 +1,318 @@
+{
+  "name": "Multi-Agent Support Desk",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "03ce2df7-a427-4e32-8e63-7310b03f3858",
+      "name": "Customer Message",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        208
+      ],
+      "webhookId": "543a9b38-0a55-49b6-9b6b-f367cea0df50"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a support supervisor. Route each customer message to the right specialist tool: billing_specialist, technical_specialist, or shipping_specialist. For mixed questions, call several. Combine their answers into one friendly, concise reply. Do not answer from your own knowledge."
+        }
+      },
+      "id": "44fb49d4-4b90-4a85-a6b8-43c9ea0aadfd",
+      "name": "Support Supervisor",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "3ce2944d-ce38-4c60-946e-85176424e71d",
+      "name": "Supervisor Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        432
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 6
+      },
+      "id": "a6909321-693f-4c28-98f9-b7d3e4bf2b02",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        272,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Handles billing questions: refunds, invoices, payment failures, subscription changes and cancellations.",
+        "text": "={{ $fromAI(\"request\", \"The customer billing question, with all relevant details\", \"string\") }}",
+        "options": {
+          "systemMessage": "You are a billing specialist. Policies: full refund within 30 days of purchase, then account credit; refunds take 5 business days; subscriptions can be cancelled anytime with access until period end and no partial refunds. Give a clear, accurate answer and the next step."
+        }
+      },
+      "id": "07b2d02c-9e8d-411a-a3ac-5a885c7435b6",
+      "name": "billing_specialist",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        496,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "d26f510a-e0bd-46e5-a934-f7d7109f3271",
+      "name": "Billing Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Handles technical issues: login problems, password resets, errors, bugs and how-to usage questions.",
+        "text": "={{ $fromAI(\"request\", \"The customer technical problem, with all relevant details\", \"string\") }}",
+        "options": {
+          "systemMessage": "You are a technical support specialist. Give numbered troubleshooting steps. Password reset links expire after 1 hour. If unresolved after basic steps, recommend escalation to a human engineer."
+        }
+      },
+      "id": "c6f828f8-8621-4e00-b036-643f404ddd3c",
+      "name": "technical_specialist",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        752,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "32d39c98-d760-41f9-b7c6-d0e703454da8",
+      "name": "Technical Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Handles order delivery, shipping times, tracking and lost-package questions.",
+        "text": "={{ $fromAI(\"request\", \"The customer shipping question, with all relevant details\", \"string\") }}",
+        "options": {
+          "systemMessage": "You are a shipping specialist. Standard shipping is 3-5 business days, express is 1-2 business days, orders after 2pm ship next business day, tracking is emailed on shipment. Be concise and helpful."
+        }
+      },
+      "id": "5a7fa57e-a712-45bb-a1b0-f81e591b3675",
+      "name": "shipping_specialist",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        1024,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "1a6b811a-6837-40c6-96f5-ae479e4d638a",
+      "name": "Shipping Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        736,
+        640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Customer Message": {
+      "main": [
+        [
+          {
+            "node": "Support Supervisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supervisor Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Support Supervisor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Support Supervisor",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "billing_specialist": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "billing_specialist",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "technical_specialist": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Technical Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "technical_specialist",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "shipping_specialist": {
+      "ai_tool": [
+        [
+          {
+            "node": "Support Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shipping Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "shipping_specialist",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4645e556-7f2a-44b4-9157-4e53dee1d75b",
+  "meta": {
+    "instanceId": "1e3a2e574fd0f3aac08d7c2673d1a0bdd3ad3f4b50721b38e4d31f2117ee68d6"
+  },
+  "nodeGroups": [],
+  "id": "0ebJUnVz4lDdNSsK",
+  "tags": []
+}
